@@ -1,5 +1,6 @@
 import express from "express";
 import bodyParser from "body-parser";
+import bcrypt from "bcrypt-nodejs";
 
 const app = express();
 app.use(bodyParser.json());
@@ -45,6 +46,10 @@ app.post("/signin", (req, res) => {
 //register --> POST = user
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
+  bcrypt.hash(password, null, null, function (err, hash) {
+    // Store hash in your password DB.
+    console.log(hash);
+  });
   database.users.push({
     id: "125",
     name: name,
@@ -85,6 +90,19 @@ app.put("/image", (req, res) => {
     res.status(400).json("no such user, try a new id!");
   }
 });
+
+// bcrypt.hash("bacon", null, null, function (err, hash) {
+//   // Store hash in your password DB.
+// });
+
+// // Load hash from your password DB.
+// bcrypt.compare("bacon", hash, function(err, res) {
+//   // res == true
+// });
+// bcrypt.compare("veggies", hash, function(err, res) {
+//   // res = false
+// });
+
 //listen on the portal
 app.listen(3000, () => {
   console.log("don't worry your app is good!");
