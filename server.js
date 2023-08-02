@@ -19,68 +19,65 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-const database = {
-  users: [
-    {
-      id: "123",
-      name: "mawulolo",
-      email: "mawulolo@gmail.com",
-      password: "orange",
-      entries: 0,
-      joined: new Date(),
-    },
-    {
-      id: "124",
-      name: "orlane",
-      email: "orlane@gmail.com",
-      password: "mango",
-      entries: 0,
-      joined: new Date(),
-    },
-  ],
-};
-
 // --> res = this is working
-app.get("/", (req, res) => {
-  res.json(database.users);
-});
+// app.get("/", (req, res) => {
+//   res.json(database.users);
+// });
 
 //signin --> POST = sucess/fail
 app.post("/signin", (req, res) => {
-  if (
-    req.body.email === database.users[0].email &&
-    req.body.password === database.users[0].password
-  ) {
-    res.json(database.users[0]);
-  } else {
-    res.status(400).json("error logging in!");
-  }
+  db.select("email", "hash")
+    .from("login")
+    .where("email", "=", req.body.email)
+    .then((data) => {
+      const isValid = bcrypt.compareSync(req.body.password, data[0].hash);
+      if (isValid) {
+        return db
+          .select("*")
+          .from("users")
+          .where("email", "=", req.body.email)
+          .then((user) => {
+            res.json(user[0]);
+          })
+          .catch((err) => res.status(400).json("unable to get user"));
+      } else {
+        res.status(400).json("wrong email or password");
+      }
+    })
+    .catch((err) => res.status(400).json("wrong email or password"));
 });
 
 //register --> POST = user
 app.post("/register", (req, res) => {
   const { name, email, password } = req.body;
-  db("users")
-    .returning("*")
-    .insert({
-      email: email,
-      name: name,
-      joined: new Date(),
-    })
-    .then((user) => {
-      res.json(user[0]);
-    })
-    .catch((err) => res.status(400).json("unable to register"));
+  const hash = bcrypt.hashSync(password);
+  db.transaction((trx) => {
+    trx
+      .insert({
+        hash: hash,
+        email: email,
+      })
+      .into("login")
+      .returning("email")
+      .then(async (loginEmail) => {
+        const user = await db("users").returning("*").insert({
+          email: loginEmail[0].email,
+          name: name,
+          joined: new Date(),
+        });
+        res.json(user[0]);
+      })
+      .then(trx.commit)
+      .catch(trx.rollback);
+  }).catch((err) => res.status(400).json("unable to register user"));
 });
 //profile/:userId --> GET = user
 app.get("/profile/:id", (req, res) => {
   const { id } = req.params;
-  let found = false;
   db.select("*")
     .from("users")
     .where({ id: id })
     .then((user) => {
-      // console.log(user);
       if (user.length) {
         res.json(user[0]);
       } else {
