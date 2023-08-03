@@ -51,6 +51,7 @@ app.post("/imageurl", (req, res) => {
 });
 
 //listen on the portal
-app.listen(3000, () => {
-  console.log("Your app is running successfully!");
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`App listening on port ${port}`);
 });
