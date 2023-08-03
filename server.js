@@ -24,6 +24,10 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
+app.get("/", (req, res) => {
+  res.json("App running successfully!");
+});
+
 //signin --> POST = sucess/fail
 app.post("/signin", (req, res) => {
   handleSignin(req, res, db, bcrypt);
